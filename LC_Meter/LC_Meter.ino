@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   09 Dec 2021
+        Date:   10 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -27,18 +27,6 @@
                 To stop continuous data & recalibrate, hold down both keys.
  **************************************************************************/
 
-// IMPORTANT NOTE:
-// Use of Timer0 precludes using the Arduino functions delay(), millis(), micros().
-// The Adafruit Nokia library uses delay() in function initDiplay(), around line #227:
-//
-//   digitalWrite(_rstpin, LOW);
-//   delay(1); // 1 ns minimum     <=====  FIND THIS LINE IN FILE "Adafruit_PCD8544.cpp"
-//   digitalWrite(_rstpin, HIGH);          AND COMMENT IT OUT.
-//
-//  The line must be commented out for this sketch to work.
-
-
-// ===========  DEFINES, CONSTANTS, GLOBALS ===========================================
 
 #include <Adafruit_GFX.h>                     // Adafruit Graphics Library
 #include <Adafruit_PCD8544.h>                 // Adafruit Nokia 5110 display library
@@ -50,6 +38,10 @@
 #define MODE_RELAY       8                    // PB0: DPDT MODE relay (0=L, 1=C)
 #define CAL_RELAY       10                    // PB2: SPST CALIBRATE relay
 #define VBAT            A5                    // PC5: BATTERY voltage monitor
+#define LCD_RESET        3                    // PD3: LCD reset line
+#define LCD_CLK         13                    // PB5: LCD data clock
+#define LCD_MOSI        11                    // PB3: LCD data input 
+#define LCD_DC          12                    // PB4: LCD data/command line
 
 #define C_MODE           1                    // capacitance mode
 #define L_MODE           0                    // inductance mode
@@ -78,7 +70,9 @@ float voltage = 0;                            // voltage at last battery check
 bool idle = false;                            // true if sketch idling (no screen updates)
 int mode = 0;                                 // current LC mode (L=0, C=1)
 
-Adafruit_PCD8544 lcd = Adafruit_PCD8544(13, 11, 12, A4, 3);
+Adafruit_PCD8544 lcd = Adafruit_PCD8544       // variable for Nokia display 
+  (LCD_CLK, LCD_MOSI, LCD_DC, -1, -1);        // call with pins for CLK, MOSI, D/C, CS, RST
+
 
 // ===========  EMBEDDED ICONS  ================================================================
 
@@ -285,7 +279,15 @@ void sendData(float measurement) {            // Send msmt data to serial port:
 
 // ===========  NOKIA DISPLAY ROUTINES   =====================================================
 
+void resetDisplay() {                         // display hardware reset
+  pinMode(LCD_RESET, OUTPUT);
+  digitalWrite(LCD_RESET, LOW);               // low-going pulse on reset line
+  wait(5);                                    // for 5 mS
+  digitalWrite(LCD_RESET, HIGH);
+}
+
 void initDisplay() {
+  resetDisplay();                             // force screen hardware reset
   lcd.begin();                                // get Nokia screen started
   lcd.setContrast(CONTRAST);                  // values 50-70 are usually OK
   lcd.clearDisplay();                         // start with blank screen

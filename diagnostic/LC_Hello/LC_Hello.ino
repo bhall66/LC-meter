@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   09 Dec 2021
+        Date:   10 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -15,7 +15,7 @@
 #include <Adafruit_PCD8544.h>
 
 Adafruit_PCD8544 lcd = 
- Adafruit_PCD8544(13, 11, 12, A4, 3);   // Pins for CLK,Din,DC,CS,RST
+ Adafruit_PCD8544(13, 11, 12, -1, 3);   // Pins for CLK,Din,DC,CS,RST
 
 
 void setup() {

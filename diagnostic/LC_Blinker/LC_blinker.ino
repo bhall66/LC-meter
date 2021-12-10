@@ -15,7 +15,7 @@
 #include <Adafruit_PCD8544.h>
 
 Adafruit_PCD8544 lcd = 
- Adafruit_PCD8544(13, 11, 12, A4, 3);         // Pins for CLK,Din,DC,CS,RST
+ Adafruit_PCD8544(13, 11, 12, -1, 3);         // Pins for CLK,Din,DC,CS,RST
 
 #define C_KEY            9                    // PB1: "KEY1" pushbutton
 #define L_KEY            2                    // PD2: "KEY2" pushbutton
