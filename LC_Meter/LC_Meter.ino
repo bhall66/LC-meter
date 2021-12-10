@@ -7,9 +7,10 @@
                 Open Source under the terms of the MIT License. 
     
  Description:   LC Meter, using harware designed by "coreWeaver"
-                See w8bh.net for description of this software
                 See https://github.com/coreWeaver/LC-Meter for
-                his project details.
+                his project information.
+                See w8bh.net for description of this software.
+
 
      Summary:   The LC meter has two buttons, each with an adjacent LED.
                 The "L" button is for inductance measurement.
@@ -31,8 +32,8 @@
 // The Adafruit Nokia library uses delay() in function initDiplay(), around line #227:
 //
 //   digitalWrite(_rstpin, LOW);
-//   delay(1); // 1 ns minimum      <=====  FIND THIS LINE IN THE LIBRARY
-//   digitalWrite(_rstpin, HIGH);           AND COMMENT IT OUT.
+//   delay(1); // 1 ns minimum     <=====  FIND THIS LINE IN FILE "Adafruit_PCD8544.cpp"
+//   digitalWrite(_rstpin, HIGH);          AND COMMENT IT OUT.
 //
 //  The line must be commented out for this sketch to work.
 
@@ -57,7 +58,7 @@
 #define WARMUP_TIME     20                    // warm up time, in seconds
 #define BATT_TIMER     180                    // time between battery checks, in seconds
 #define DATA_TIMER      60                    // time between serial data output, in sec
-#define R_RATIO        2.0                    // set to R6/(R5+R6).  Should be ~2.0
+#define R_RATIO        2.0                    // set to (R5+R6)/R6.  Should be ~2.0
 #define CONTRAST        60                    // display contrast. Values 50-70 usually OK.
 #define DEVICE_NAME   "LC METER v1"           // device name & version
 #define OWNER         "W8BH"                  // Your name or call here
