@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   10 Dec 2021
+        Date:   12 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -153,7 +153,7 @@ void initTimers() {
   TCNT1   = 0;                                // TIMER1 SETUP: interrupts at 1 Hz
   TCCR1A  = 0;                                // no external outputs
   TCCR1B  = bit(WGM12)+bit(CS12);             // CTC Mode; prescalar /256  
-  OCR1A   = 31250-1;                          // compare match register 16 Mhz/256/1Hz
+  OCR1A   = 31250-1;                          // compare match register 8 Mhz/256/1Hz
   TIMSK1  = bit(OCIE1A);                      // enable timer compare interrupt
 
   TCNT2   = 0;                                // TIMER2 SETUP: interrupts at 1000 Hz
