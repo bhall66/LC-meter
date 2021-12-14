@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   12 Dec 2021
+        Date:   14 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -8,10 +8,16 @@
     
  Description:   Tests the use of hardware timers #0,1,2 in the LC Meter.
                 
-                The display will show the elapsed time, in addition to 
-                the 1 Hz (Timer1) and 1000 Hz (Timer2) timer values, updated 
-                once per second.  The C LED will also pulse at 1 Hz.
+                The display will show 4 items:
+                  1.  The elapsed runtime, in hh:mm:ss
+                  2.  The seconds counter, from Timer1
+                  3.  The milliseconds counter, from Timer2
+                  4.  The oscillator frequency, in Hz  
+                
+                The C LED will also pulse at 1 Hz.
                 Press the L key to reset the counters.
+                Short probe leads together to start oscillator.
+                
  **************************************************************************/
 
 
@@ -22,9 +28,6 @@
 #define L_KEY            2                    // PD2: "KEY2" pushbutton
 #define C_LED            5                    // PD5: LED fir C_MODE
 #define L_LED            6                    // PD6: LED for L_MODE
-#define MODE_RELAY       8                    // PB0: DPDT MODE relay (0=L, 1=C)
-#define CAL_RELAY       10                    // PB2: SPST CALIBRATE relay
-#define VBAT            A5                    // PC5: BATTERY voltage monitor
 #define LCD_RESET        3                    // PD3: LCD reset line
 #define LCD_CLK         13                    // PB5: LCD data clock
 #define LCD_MOSI        11                    // PB3: LCD data input 
@@ -37,14 +40,14 @@ volatile unsigned long ticks = 0;             // millisecond counter
 unsigned long t = 0;                          // current runtime, in seconds
 
 Adafruit_PCD8544 lcd = Adafruit_PCD8544       // variable for Nokia display 
-  (LCD_CLK, LCD_MOSI, LCD_DC, -1, -1);        // call with pins for CLK, MOSI, D/C, CS, RST
+  (LCD_CLK, LCD_MOSI, LCD_DC, -1, LCD_RESET); // call with pins for CLK, MOSI, D/C, CS, RST
 
 // ===========  HARDWARE TIMER ROUTINES ==========================================================
 
 ISR(TIMER1_COMPA_vect) {                      // INTERRUPT SERVICE ROUTINE: Timer1 compare
   int t0 = TCNT0;                             // save TCNT0
   TCNT0 = 0;                                  // & reset TCNT0 as soon as possible
-  frequency = (ovfCounter<<8) + t0;           // calculate total pulses in 1 second
+  frequency = (ovfCounter*256) + t0;           // calculate total pulses in 1 second
   ovfCounter = 0;                             // reset overflow counter
   seconds++;                                  // increment seconds counter
 }
@@ -100,9 +103,6 @@ void wait(int msDelay) {                      // substitute for Arduino delay() 
 void initPorts() {                            // INITIALIZE ALL MCU PIN INTERFACES
   pinMode(L_KEY,INPUT_PULLUP);                // L pushbutton
   pinMode(C_KEY,INPUT_PULLUP);                // C pushbutton
-  pinMode(VBAT, INPUT);                       // battery voltage /2
-  pinMode(MODE_RELAY, OUTPUT);                // DPDT relay control
-  pinMode(CAL_RELAY,  OUTPUT);                // SPST relay
   pinMode(C_LED,      OUTPUT);                // C LED
   pinMode(L_LED,      OUTPUT);                // L KED
 }
@@ -122,16 +122,8 @@ void setLEDs(int led1, int led2) {            // control the LEDs
 
 // ===========  NOKIA DISPLAY ROUTINES   =====================================================
 
-void resetDisplay() {                         // display hardware reset
-  pinMode(LCD_RESET, OUTPUT);
-  digitalWrite(LCD_RESET, LOW);               // low-going pulse on reset line
-  wait(5);                                    // for 5 mS
-  digitalWrite(LCD_RESET, HIGH);
-}
-
 void initDisplay() {
-  resetDisplay();                             // force screen hardware reset
-  lcd.begin();                                // get Nokia screen started
+  lcd.begin();                                // must call this before HW timer init!!
   lcd.setContrast(60);                        // values 50-70 are usually OK
   lcd.clearDisplay();                         // start with blank screen
   lcd.setTextColor(BLACK,WHITE);              // black text on white background
@@ -140,7 +132,7 @@ void initDisplay() {
 }
 
 void printTime(long t) {                     // confirm seconds to hh:mm:ss
-  int hours = t/3600;                        // get # of hours
+  long hours = t/3600;                       // get # of hours
   t -= (hours*3600);                         // and subtract it from total
   int minutes = t/60;                        // get # of minutes
   t -= (minutes*60);                         // and subtract it from total
@@ -154,10 +146,28 @@ void showData (long t, long mS) {
   lcd.clearDisplay();
   lcd.setCursor(0,0);
   lcd.println("LC Timers\n");
-  lcd.print("Tm: "); printTime(t);            // display upTime in hh:mm:ss
-  lcd.print(" S: "); lcd.println(t);          // display total S on timer1
-  lcd.print("mS: "); lcd.println(mS);         // display total mS on timer2
+  lcd.print("Tm "); printTime(t);             // display upTime in hh:mm:ss
+  lcd.print(" S "); lcd.println(t);           // display total S on timer1
+  lcd.print("mS "); lcd.println(mS);          // display total mS on timer2
+  lcd.print("Hz "); lcd.println(frequency);   // display oscillator frequency
   lcd.display();                              // show it!  
+}
+
+
+void initSerial() {
+  Serial.begin(9600);                         // initialize serial port
+  Serial.println("\n\n");                     // clear some space
+  Serial.println("W8BH");                     // announce startup
+  Serial.println("LC Timers"); 
+}
+
+void sendData() {                             // Send msmt data to serial port:
+  Serial.print("Time ");                      // 1. Time
+  Serial.print(seconds);
+  Serial.print(", F3 ");                      // 2. Oscillator frequency with DUT
+  Serial.print(frequency);
+  Serial.print(" Hz");
+  Serial.println();  
 }
 
 
@@ -165,17 +175,19 @@ void showData (long t, long mS) {
 
 void setup() {
   initPorts();                                // initialize all MCU ports
+  initDisplay();                              // initialize Nokia display  
   initTimers();                               // initialize hardware timers
-  initDisplay();                              // initialize Nokia display          
+  initSerial();                               // initialize serial port       
   setLEDs(0,0);                               // start with both LEDs off
   showData(t,0);                              // start at time 0
 }
 
-void loop() {                                 
+void loop() {                               
   if (seconds>t) {                            // At the start of a new second:
     long mS = ticks;                          // remember mS
     t = seconds;                              // remember time in S
     showData(t,mS);                           // show the counter data
+    sendData();
     setLEDs(0,1);                             // flash C LED
     wait(100);                                // once per second
     setLEDs(0,0);

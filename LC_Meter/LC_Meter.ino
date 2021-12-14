@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   12 Dec 2021
+        Date:   14 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -71,7 +71,7 @@ bool idle = false;                            // true if sketch idling (no scree
 int mode = 0;                                 // current LC mode (L=0, C=1)
 
 Adafruit_PCD8544 lcd = Adafruit_PCD8544       // variable for Nokia display 
-  (LCD_CLK, LCD_MOSI, LCD_DC, -1, -1);        // call with pins for CLK, MOSI, D/C, CS, RST
+  (LCD_CLK, LCD_MOSI, LCD_DC, -1, LCD_RESET); // call with pins for CLK, MOSI, D/C, CS, RST
 
 
 // ===========  EMBEDDED ICONS  ================================================================
@@ -279,16 +279,8 @@ void sendData(float measurement) {            // Send msmt data to serial port:
 
 // ===========  NOKIA DISPLAY ROUTINES   =====================================================
 
-void resetDisplay() {                         // display hardware reset
-  pinMode(LCD_RESET, OUTPUT);
-  digitalWrite(LCD_RESET, LOW);               // low-going pulse on reset line
-  wait(5);                                    // for 5 mS
-  digitalWrite(LCD_RESET, HIGH);
-}
-
 void initDisplay() {
-  resetDisplay();                             // force screen hardware reset
-  lcd.begin();                                // get Nokia screen started
+  lcd.begin();                                // must call before HW timer init!!
   lcd.setContrast(CONTRAST);                  // values 50-70 are usually OK
   lcd.clearDisplay();                         // start with blank screen
   lcd.setTextColor(BLACK,WHITE);              // black text on white background
@@ -536,9 +528,9 @@ void handleCKey() {                           // do something when C key is pres
 
 void setup() {
   initPorts();                                // initialize all MCU ports
-  initTimers();                               // initialize hardware timers
   initDisplay();                              // initialize Nokia display
-  initSerial();                               // initialize Serial port           
+  initSerial();                               // initialize Serial port 
+  initTimers();                               // initialize hardware timers         
   setMode(L_MODE);                            // turn off relay, save 30mA
   insertCCal(false);                          // take calibration cap out of circuit
   setLEDs(0,0);                               // start with both LEDs off
