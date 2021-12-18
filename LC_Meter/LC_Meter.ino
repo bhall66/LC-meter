@@ -1,6 +1,6 @@
  /**************************************************************************
       Author:   Bruce E. Hall, w8bh.net
-        Date:   14 Dec 2021
+        Date:   18 Dec 2021
     Hardware:   ATMEGA328, Nokia5510 display, CoreWeaver PCB
     Software:   Arduino IDE 1.8.13
        Legal:   Copyright (c) 2021  Bruce E. Hall.
@@ -42,6 +42,8 @@
 #define LCD_CLK         13                    // PB5: LCD data clock
 #define LCD_MOSI        11                    // PB3: LCD data input 
 #define LCD_DC          12                    // PB4: LCD data/command line
+#define BACKLIGHT        7                    // PD7: LCD backlight control pin
+#define OSCILLATOR       4                    // PD4: Oscillator input pin 
 
 #define C_MODE           1                    // capacitance mode
 #define L_MODE           0                    // inductance mode
@@ -54,6 +56,7 @@
 #define CONTRAST        60                    // display contrast. Values 50-70 usually OK.
 #define DEVICE_NAME   "LC METER v1"           // device name & version
 #define OWNER         "W8BH"                  // Your name or call here
+#define CTRL_BKLIGHT   true                   // if true, allow code to control backlight
 
 volatile unsigned long ovfCounter = 0;        // frequency overflow counter
 volatile unsigned long frequency = 0;         // current LM311 oscillator freq (Hz)
@@ -211,6 +214,7 @@ void initPorts() {                            // INITIALIZE ALL MCU PIN INTERFAC
   pinMode(CAL_RELAY,  OUTPUT);                // SPST relay
   pinMode(C_LED,      OUTPUT);                // C LED
   pinMode(L_LED,      OUTPUT);                // L KED
+  pinMode(BACKLIGHT,  OUTPUT);                // LCD Backlight
 }
 
 bool LKeyPressed() {                          // is the L key pressed?
@@ -221,11 +225,17 @@ bool CKeyPressed() {                          // is the C key pressed?
   return !digitalRead(C_KEY);                 // pressed = pin is grounded
 }
 
+void setBacklight(bool on) {                  // turn backlight on/off
+  digitalWrite(BACKLIGHT,!on);                // low output will turn on backlight
+}
+
+
 void setLEDs(int led1, int led2) {            // control the LEDs
   digitalWrite(L_LED,led1);                   // turn the L LED on/off
   digitalWrite(C_LED,led2);                   // turn the C LED on/off
+  if (CTRL_BKLIGHT)                           // can sketch control backlight?
+    setBacklight(led1+led2);                  // if yes, backlight off when both LEDs off
 }
-
 void setMode(int newMode) {                   // set Mode (Inductance vs. Capacitance)
   mode = newMode;                             // remember the mode
   digitalWrite(MODE_RELAY, mode);             // by controlling the DPDT relay (on=cap, off=ind)
@@ -534,6 +544,7 @@ void setup() {
   setMode(L_MODE);                            // turn off relay, save 30mA
   insertCCal(false);                          // take calibration cap out of circuit
   setLEDs(0,0);                               // start with both LEDs off
+  setBacklight(1);                            // start with backlight on
   warmUp(WARMUP_TIME);                        // do a warmup countdown
   doCalibration();                            // then calibrate
 }
